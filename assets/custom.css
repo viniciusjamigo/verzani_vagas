@@ -1,4 +1,71 @@
-/* CSS Customizado para o Dashboard de BI */
+/* assets/custom.css */
 
-/* Voce pode adicionar seus estilos aqui */
+/* Usando variáveis do tema Cyborg para consistência */
+:root {
+    --primary-color: #2a9fd6; /* Azul do Cyborg */
+    --subtle-red: #d9534f;
+    --dark-grey: #3e444c;
+    --border-color: #555;
+}
+
+/* --- Ajustes Gerais de Estilo --- */
+body {
+    /* Cor de texto mais suave que o branco puro */
+    color: #adafae;
+}
+
+/* Deixa os KPIs menos coloridos e mais legíveis */
+.card-title.text-danger {
+    color: var(--subtle-red) !important;
+    font-weight: bold;
+}
+
+.text-primary {
+    color: var(--primary-color) !important;
+}
+
+/* Melhora o contraste dos filtros dropdown */
+.Select-control {
+    background-color: var(--dark-grey);
+    border-color: var(--border-color);
+}
+.Select--multi .Select-value, .Select-placeholder, .Select--single > .Select-control .Select-value {
+    color: #fff;
+}
+
+
+/* --- Estilo dos Botões --- */
+
+/* Botões principais de filtro (Ex: "Filtrar por Status...") */
+#filtro-status-btn, #filtro-status-interno-btn {
+    background-color: var(--dark-grey) !important;
+    border-color: var(--border-color) !important;
+    box-shadow: none !important;
+    transition: background-color 0.2s ease-in-out;
+}
+#filtro-status-btn:hover, #filtro-status-interno-btn:hover {
+    background-color: #4a5058 !important;
+}
+
+/* Botão de Logout */
+#logout_button {
+    background-color: var(--subtle-red) !important;
+    border-color: var(--subtle-red) !important;
+    opacity: 0.8;
+    transition: opacity 0.2s ease-in-out;
+}
+#logout_button:hover {
+    opacity: 1;
+}
+
+/* Botão da página de Login */
+#login-button {
+     background-color: var(--primary-color) !important;
+     border-color: var(--primary-color) !important;
+     opacity: 0.9;
+     transition: opacity 0.2s ease-in-out;
+}
+#login-button:hover {
+    opacity: 1;
+}
 

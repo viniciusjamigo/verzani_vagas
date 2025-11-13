@@ -275,8 +275,8 @@ app.layout = html.Div([
 # --- Callback 1: Roteador de Páginas ---
 @app.callback(
     Output('page-content', 'children'),
-    Input('url', 'pathname'),
-    State('session', 'data')
+    [Input('url', 'pathname'),
+     Input('session', 'data')] # MUDANÇA: Agora o callback é acionado quando a sessão muda
 )
 def display_page(pathname, session_data):
     session_data = session_data or {}
@@ -285,42 +285,39 @@ def display_page(pathname, session_data):
     else:
         return login_layout
 
-# --- Callback 2: Lógica de Login ---
+# --- Callback 2: Lógica de Login e Logout (COMBINADOS) ---
 @app.callback(
     [Output('session', 'data'),
      Output('output-state', 'children'),
      Output('output-state', 'is_open')],
-    Input('login-button', 'n_clicks'),
+    [Input('login-button', 'n_clicks'),
+     Input('logout_button', 'n_clicks')],
     [State('username', 'value'),
-     State('password', 'value')]
+     State('password', 'value')],
+     prevent_initial_call=True
 )
-def update_output(n_clicks, username, password):
-    if n_clicks is None or n_clicks == 0:
-        raise dash.exceptions.PreventUpdate
+def manage_session(login_clicks, logout_clicks, username, password):
+    ctx = dash.callback_context
+    triggered_id = ctx.triggered[0]['prop_id'].split('.')[0]
 
-    if username in USERS and password == USERS[username]["password"]:
-        session_data = {
-            'authenticated': True, 
-            'username': username, 
-            'role': USERS[username]['role']
-        }
-        return session_data, "", False
-    else:
-        error_message = "Usuário ou senha inválidos."
-        return dash.no_update, error_message, True
+    # Lógica de Logout
+    if triggered_id == 'logout_button':
+        return {}, "", False # Limpa a sessão
 
-
-# --- Callback 3: Lógica de Logout ---
-@app.callback(
-    Output('url', 'pathname'),
-    Input('logout_button', 'n_clicks')
-)
-def logout(n_clicks):
-    if n_clicks:
-        # Limpa a sessão ao redirecionar para a página de login
-        return '/'
-    raise dash.exceptions.PreventUpdate
-
+    # Lógica de Login
+    if triggered_id == 'login-button':
+        if username in USERS and password == USERS[username]["password"]:
+            session_data = {
+                'authenticated': True, 
+                'username': username, 
+                'role': USERS[username]['role']
+            }
+            return session_data, "", False
+        else:
+            error_message = "Usuário ou senha inválidos."
+            return dash.no_update, error_message, True
+    
+    return dash.no_update, "", False
 
 # --- Callback 4: Mostrar/Ocultar Upload com base na permissão ---
 @app.callback(
