@@ -261,7 +261,7 @@ dashboard_layout = dbc.Container([
 # LAYOUT PRINCIPAL (CONTROLA QUAL PÁGINA MOSTRAR)
 # =====================================================================
 app.layout = html.Div([
-    dcc.Location(id='url', refresh=False),
+    dcc.Location(id='url', refresh=True), # refresh=True é importante para o logout
     dcc.Store(id='session', storage_type='session'),
     dcc.Store(id='data-update-signal'), # Sinalizador para atualização de dados
     html.Div(id='page-content')
@@ -272,52 +272,65 @@ app.layout = html.Div([
 # 4. CALLBACKS - A "INTELIGENCIA" DO DASHBOARD
 # =====================================================================
 
-# --- Callback 1: Roteador de Páginas ---
+# --- Callback 1: Roteador Principal de Páginas ---
 @app.callback(
     Output('page-content', 'children'),
-    [Input('url', 'pathname'),
-     Input('session', 'data')] # MUDANÇA: Agora o callback é acionado quando a sessão muda
+    Input('url', 'pathname'),
+    State('session', 'data')
 )
-def display_page(pathname, session_data):
+def router(pathname, session_data):
     session_data = session_data or {}
-    if session_data.get('authenticated'):
-        return dashboard_layout
-    else:
-        return login_layout
+    is_authenticated = session_data.get('authenticated', False)
 
-# --- Callback 2: Lógica de Login e Logout (COMBINADOS) ---
+    if pathname == '/login':
+        return login_layout
+    
+    if pathname.startswith('/dashboard') and is_authenticated:
+        return dashboard_layout
+    
+    # Se não for nenhuma das rotas acima e não estiver autenticado, vai para o login
+    if is_authenticated:
+        return dashboard_layout # Se já estiver logado e na raiz, vai para o dash
+    
+    return login_layout
+
+# --- Callback 2: Lógica de Login ---
 @app.callback(
     [Output('session', 'data'),
      Output('output-state', 'children'),
-     Output('output-state', 'is_open')],
-    [Input('login-button', 'n_clicks'),
-     Input('logout_button', 'n_clicks')],
+     Output('output-state', 'is_open'),
+     Output('url', 'pathname')],
+    Input('login-button', 'n_clicks'),
     [State('username', 'value'),
      State('password', 'value')],
-     prevent_initial_call=True
+    prevent_initial_call=True # Impede a execução no carregamento inicial
 )
-def manage_session(login_clicks, logout_clicks, username, password):
-    ctx = dash.callback_context
-    triggered_id = ctx.triggered[0]['prop_id'].split('.')[0]
+def login_logic(n_clicks, username, password):
+    if username in USERS and password == USERS[username]["password"]:
+        session_data = {
+            'authenticated': True, 
+            'username': username, 
+            'role': USERS[username]['role']
+        }
+        # Em sucesso, atualiza a sessão e redireciona para o dashboard
+        return session_data, "", False, '/dashboard'
+    else:
+        # Em falha, mostra o erro e não muda de página
+        error_message = "Usuário ou senha inválidos."
+        return dash.no_update, error_message, True, dash.no_update
 
-    # Lógica de Logout
-    if triggered_id == 'logout_button':
-        return {}, "", False # Limpa a sessão
 
-    # Lógica de Login
-    if triggered_id == 'login-button':
-        if username in USERS and password == USERS[username]["password"]:
-            session_data = {
-                'authenticated': True, 
-                'username': username, 
-                'role': USERS[username]['role']
-            }
-            return session_data, "", False
-        else:
-            error_message = "Usuário ou senha inválidos."
-            return dash.no_update, error_message, True
-    
-    return dash.no_update, "", False
+# --- Callback 3: Lógica de Logout ---
+@app.callback(
+    [Output('session', 'data', allow_duplicate=True),
+     Output('url', 'pathname', allow_duplicate=True)],
+    Input('logout_button', 'n_clicks'),
+    prevent_initial_call=True
+)
+def logout_logic(n_clicks):
+    # Limpa a sessão e redireciona para a página de login
+    return {}, '/login'
+
 
 # --- Callback 4: Mostrar/Ocultar Upload com base na permissão ---
 @app.callback(
