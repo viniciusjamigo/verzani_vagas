@@ -33,6 +33,39 @@ body {
     color: #fff;
 }
 
+/* --- Título Principal --- */
+h1.text-primary {
+    font-size: 2.5rem; /* Reduz o tamanho da fonte */
+    font-weight: 300; /* Deixa a fonte mais leve */
+    letter-spacing: 1px; /* Adiciona um leve espaçamento */
+}
+
+
+/* --- Abas com aparência de Botões --- */
+.nav-tabs {
+    border: none;
+}
+
+.nav-tabs .nav-link {
+    background-color: var(--dark-grey);
+    border: 1px solid var(--border-color) !important;
+    color: #adafae;
+    margin: 0 5px 0 0;
+    border-radius: 5px !important;
+    transition: all 0.2s ease-in-out;
+}
+
+.nav-tabs .nav-link:hover {
+    background-color: #4a5058;
+    border-color: #666 !important;
+}
+
+.nav-tabs .nav-link.active {
+    background-color: var(--primary-color);
+    color: #fff;
+    border-color: var(--primary-color) !important;
+}
+
 
 /* --- Estilo dos Botões --- */
 
