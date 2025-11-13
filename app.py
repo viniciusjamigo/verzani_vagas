@@ -192,8 +192,8 @@ dashboard_layout = dbc.Container([
                 ], className='mb-4 mt-3'),
                 # Graficos
                 dbc.Row([
-                    dbc.Col(dcc.Graph(id='grafico-vagas-status'), width=8),
-                    dbc.Col(dcc.Graph(id='grafico-vagas-motivo'), width=4)
+                    dbc.Col(dcc.Graph(id='grafico-vagas-status'), lg=8, md=12, className="mb-4"),
+                    dbc.Col(dcc.Graph(id='grafico-vagas-motivo'), lg=4, md=12, className="mb-4")
                 ]),
                 # Grafico Top Vagas
                  dbc.Row([
@@ -237,8 +237,8 @@ dashboard_layout = dbc.Container([
                 ], className='mb-4 mt-3'),
                 # Graficos (com IDs diferentes)
                 dbc.Row([
-                    dbc.Col(dcc.Graph(id='grafico-vagas-status-interno'), width=8),
-                    dbc.Col(dcc.Graph(id='grafico-vagas-motivo-interno'), width=4)
+                    dbc.Col(dcc.Graph(id='grafico-vagas-status-interno'), lg=8, md=12, className="mb-4"),
+                    dbc.Col(dcc.Graph(id='grafico-vagas-motivo-interno'), lg=4, md=12, className="mb-4")
                 ]),
                 # Grafico Top Vagas (com ID diferente)
                  dbc.Row([
@@ -574,6 +574,7 @@ def update_dashboard_status_vaga(start_date, end_date, selected_status, selected
         title='Distribuição por Motivo',
         hole=.4
     )
+    fig_motivo.update_traces(insidetextfont_color='white', insidetextfont_size=14, textfont_size=12)
     fig_motivo.update_layout(
         paper_bgcolor='rgba(0,0,0,0)',
         plot_bgcolor='rgba(0,0,0,0)',
@@ -722,6 +723,7 @@ def update_dashboard_status_interno(start_date, end_date, selected_status, selec
         title='Distribuição por Motivo',
         hole=.4
     )
+    fig_motivo.update_traces(insidetextfont_color='white', insidetextfont_size=14, textfont_size=12)
     fig_motivo.update_layout(
         paper_bgcolor='rgba(0,0,0,0)',
         plot_bgcolor='rgba(0,0,0,0)',
