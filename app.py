@@ -6,46 +6,43 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 from datetime import datetime, date
+import base64
+import io
 
 # =====================================================================
-# 1. LEITURA E TRATAMENTO DOS DADOS
+# FUNÇÃO DE CARREGAMENTO DE DADOS
 # =====================================================================
-try:
-    # Tenta ler o CSV com o encoding padrao
-    df = pd.read_csv('data/dados.csv', sep=';')
-except UnicodeDecodeError:
-    # Se falhar, tenta com um encoding diferente, comum no Brasil
-    df = pd.read_csv('data/dados.csv', sep=';', encoding='latin1')
-
-# Converte as colunas de data para datetime, tratando erros
-df['Recrutamento e Seleção'] = pd.to_datetime(df['Recrutamento e Seleção'], format='%d/%m/%Y', errors='coerce')
-
-# Remove linhas onde a data de 'Recrutamento e Seleção' não pôde ser convertida
-df.dropna(subset=['Recrutamento e Seleção'], inplace=True)
-
-# Limpeza de dados: remove espaços em branco extras dos nomes das colunas
-df.columns = df.columns.str.strip()
-
-# Limpeza da coluna STATUS: preenche valores vazios e remove espaços
-df['STATUS'] = df['STATUS'].str.strip().fillna('Não especificado')
-df.loc[df['STATUS'] == '', 'STATUS'] = 'Não especificado'
+def load_data():
+    """Lê e trata o arquivo de dados, retornando um DataFrame."""
+    try:
+        df = pd.read_csv('data/dados.csv', sep=';')
+    except UnicodeDecodeError:
+        df = pd.read_csv('data/dados.csv', sep=';', encoding='latin1')
+    
+    df['Recrutamento e Seleção'] = pd.to_datetime(df['Recrutamento e Seleção'], format='%d/%m/%Y', errors='coerce')
+    df.dropna(subset=['Recrutamento e Seleção'], inplace=True)
+    df.columns = df.columns.str.strip()
+    df['STATUS'] = df['STATUS'].str.strip().fillna('Não especificado')
+    df.loc[df['STATUS'] == '', 'STATUS'] = 'Não especificado'
+    return df
 
 # =====================================================================
-# 2. INICIALIZACAO DO APP DASH
+# INICIALIZAÇÃO E CONFIGURAÇÕES GERAIS
 # =====================================================================
-app = dash.Dash(__name__, external_stylesheets=[dbc.themes.FLATLY], suppress_callback_exceptions=True)
+df = load_data() # Carga inicial dos dados
+app = dash.Dash(__name__, external_stylesheets=[dbc.themes.CYBORG], suppress_callback_exceptions=True)
 server = app.server
 
 # =====================================================================
-# USUÁRIOS VÁLIDOS (PARA AUTENTICAÇÃO)
+# USUÁRIOS E PERMISSÕES
 # =====================================================================
-# Em um projeto real, isso viria de um banco de dados
-VALID_USERNAME_PASSWORD_PAIRS = {
-    "verzani": "vagas123"
+USERS = {
+    "verzani": {"password": "vagas123", "role": "admin"},
+    "visitante": {"password": "vagas_visitante", "role": "guest"}
 }
 
 # =====================================================================
-# OPÇÕES PARA FILTROS
+# OPÇÕES PARA FILTROS (BASEADO NA CARGA INICIAL)
 # =====================================================================
 status_vaga_options = sorted(df['Status da Vaga'].unique())
 status_interno_options = sorted(df['STATUS'].unique())
@@ -59,13 +56,13 @@ login_layout = dbc.Container([
     dbc.Row(
         dbc.Col(
             dbc.Card([
-                html.H3("Acesso Restrito", className="card-title text-center mt-4"),
+                html.H3("Dashboard de Vagas", className="card-title text-center mt-4"),
                 dbc.CardBody([
-                    dbc.Alert("Por favor, insira suas credenciais para continuar.", color="primary"),
+                    dbc.Alert("Por favor, insira suas credenciais para continuar.", color="secondary"),
                     dbc.Alert(id="output-state", color="danger", is_open=False),
                     dbc.Input(id="username", type="text", placeholder="Usuário", className="mb-3"),
                     dbc.Input(id="password", type="password", placeholder="Senha", className="mb-3"),
-                    dbc.Button("Entrar", id="login-button", color="primary", className="w-100"),
+                    dbc.Button("Fazer login", id="login-button", color="primary", className="w-100"),
                 ])
             ], className="mt-5", style={"maxWidth": "500px"}),
             width=12,
@@ -75,13 +72,35 @@ login_layout = dbc.Container([
 ], fluid=True)
 
 
-# --- Layout Principal do Dashboard (seu código original) ---
+# --- Layout Principal do Dashboard (seu código original com adições) ---
 dashboard_layout = dbc.Container([
-    # Adicionando Botão de Logout
+    # Adicionando Botão de Logout e Nome do Usuário
     dbc.Row([
         dbc.Col(html.Div(id='user-name-display', className='text-muted text-start'), width=6),
         dbc.Col(dbc.Button("Sair", id="logout_button", color="danger", size="sm", className="float-end"), width=6),
     ], className="mt-3 mb-2"),
+
+    # Container para a funcionalidade de Upload (visível apenas para admin)
+    html.Div(id='upload-container', children=[
+        dbc.Row([
+            dbc.Col([
+                html.Hr(),
+                html.H5("Atualizar Base de Dados (Admin)", className="text-info"),
+                dcc.Upload(
+                    id='upload-data',
+                    children=html.Div(['Arraste e solte ou ', html.A('selecione um arquivo .csv')]),
+                    style={
+                        'width': '100%', 'height': '60px', 'lineHeight': '60px',
+                        'borderWidth': '1px', 'borderStyle': 'dashed',
+                        'borderRadius': '5px', 'textAlign': 'center', 'margin': '10px'
+                    },
+                    multiple=False
+                ),
+                html.Div(id='output-data-upload'),
+                html.Hr()
+            ])
+        ], className='mb-4')
+    ], style={'display': 'none'}), # Oculto por padrão
 
     # --- Linha 1: Titulo ---
     dbc.Row([
@@ -243,8 +262,8 @@ dashboard_layout = dbc.Container([
 # =====================================================================
 app.layout = html.Div([
     dcc.Location(id='url', refresh=False),
-    # 'session' guarda os dados no navegador enquanto a aba estiver aberta
     dcc.Store(id='session', storage_type='session'),
+    dcc.Store(id='data-update-signal'), # Sinalizador para atualização de dados
     html.Div(id='page-content')
 ])
 
@@ -254,7 +273,6 @@ app.layout = html.Div([
 # =====================================================================
 
 # --- Callback 1: Roteador de Páginas ---
-# Decide se mostra a página de login ou o dashboard
 @app.callback(
     Output('page-content', 'children'),
     Input('url', 'pathname'),
@@ -280,8 +298,12 @@ def update_output(n_clicks, username, password):
     if n_clicks is None or n_clicks == 0:
         raise dash.exceptions.PreventUpdate
 
-    if username in VALID_USERNAME_PASSWORD_PAIRS and password == VALID_USERNAME_PASSWORD_PAIRS[username]:
-        session_data = {'authenticated': True, 'username': username}
+    if username in USERS and password == USERS[username]["password"]:
+        session_data = {
+            'authenticated': True, 
+            'username': username, 
+            'role': USERS[username]['role']
+        }
         return session_data, "", False
     else:
         error_message = "Usuário ou senha inválidos."
@@ -291,26 +313,71 @@ def update_output(n_clicks, username, password):
 # --- Callback 3: Lógica de Logout ---
 @app.callback(
     Output('url', 'pathname'),
-    Input('logout_button', 'n_clicks'),
-    State('session', 'data')
+    Input('logout_button', 'n_clicks')
 )
-def logout(n_clicks, session_data):
+def logout(n_clicks):
     if n_clicks:
-        if session_data:
-            session_data['authenticated'] = False
-            # Embora a sessão seja limpa, o redirecionamento é o que efetivamente "desloga"
-        return '/' # Redireciona para a raiz, o que vai acionar o display_page e mostrar o login
+        # Limpa a sessão ao redirecionar para a página de login
+        return '/'
     raise dash.exceptions.PreventUpdate
 
-# --- Callback 4: Mostrar nome do usuário logado ---
+
+# --- Callback 4: Mostrar/Ocultar Upload com base na permissão ---
+@app.callback(
+    Output('upload-container', 'style'),
+    Input('session', 'data')
+)
+def show_hide_upload(session_data):
+    session_data = session_data or {}
+    if session_data.get('role') == 'admin':
+        return {'display': 'block'}
+    else:
+        return {'display': 'none'}
+
+
+# --- Callback 5: Mostrar nome do usuário logado ---
 @app.callback(
     Output('user-name-display', 'children'),
     Input('session', 'data')
 )
 def display_username(session_data):
-    if session_data and session_data.get('authenticated'):
-        return f"Logado como: {session_data.get('username', 'Usuário')}"
+    session_data = session_data or {}
+    if session_data.get('authenticated'):
+        role = "Administrador" if session_data.get('role') == 'admin' else "Visitante"
+        return f"Logado como: {session_data.get('username')} ({role})"
     return ""
+
+# --- Callback 6: Processar o Upload do Arquivo ---
+@app.callback(
+    [Output('output-data-upload', 'children'),
+     Output('data-update-signal', 'data')],
+    Input('upload-data', 'contents'),
+    State('upload-data', 'filename')
+)
+def update_output_upload(contents, filename):
+    if contents is not None:
+        content_type, content_string = contents.split(',')
+        decoded = base64.b64decode(content_string)
+        try:
+            if 'csv' in filename:
+                # Salva o novo arquivo
+                with open('data/dados.csv', 'wb') as f:
+                    f.write(decoded)
+                
+                # Gera uma mensagem de sucesso
+                alert = dbc.Alert(f"Arquivo '{filename}' atualizado com sucesso!", color="success", dismissable=True)
+                # Retorna a mensagem e um sinal para os outros callbacks atualizarem
+                return alert, datetime.now().isoformat()
+            else:
+                alert = dbc.Alert("Erro: O arquivo deve ser no formato .csv", color="danger", dismissable=True)
+                return alert, dash.no_update
+
+        except Exception as e:
+            print(e)
+            alert = dbc.Alert(f"Houve um erro ao processar o arquivo: {e}", color="danger", dismissable=True)
+            return alert, dash.no_update
+            
+    return "", dash.no_update
 
 
 # --- Callbacks para interatividade do Filtro 1 (Status da Vaga) ---
@@ -386,11 +453,15 @@ def manage_all_selection_status_interno(select_all, clear_all):
         Input('filtro-data', 'end_date'),
         Input('filtro-status', 'value'), # Filtro específico desta aba
         Input('filtro-grupo', 'value'),
-        Input('filtro-uf', 'value')
+        Input('filtro-uf', 'value'),
+        Input('data-update-signal', 'data') # Input para o sinal de atualização
     ]
 )
-def update_dashboard_status_vaga(start_date, end_date, selected_status, selected_grupos, selected_ufs):
+def update_dashboard_status_vaga(start_date, end_date, selected_status, selected_grupos, selected_ufs, update_signal):
     # --- 1. Filtragem dos Dados ---
+    # Recarrega os dados sempre que a função for chamada
+    df = load_data()
+
     start_date_obj = date.fromisoformat(start_date)
     end_date_obj = date.fromisoformat(end_date)
     
@@ -519,11 +590,15 @@ def update_dashboard_status_vaga(start_date, end_date, selected_status, selected
         Input('filtro-data', 'end_date'),
         Input('filtro-status-interno', 'value'), # Filtro específico desta aba
         Input('filtro-grupo', 'value'),
-        Input('filtro-uf', 'value')
+        Input('filtro-uf', 'value'),
+        Input('data-update-signal', 'data') # Input para o sinal de atualização
     ]
 )
-def update_dashboard_status_interno(start_date, end_date, selected_status, selected_grupos, selected_ufs):
+def update_dashboard_status_interno(start_date, end_date, selected_status, selected_grupos, selected_ufs, update_signal):
     # --- 1. Filtragem dos Dados ---
+    # Recarrega os dados sempre que a função for chamada
+    df = load_data()
+
     start_date_obj = date.fromisoformat(start_date)
     end_date_obj = date.fromisoformat(end_date)
     
