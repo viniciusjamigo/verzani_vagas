@@ -9,6 +9,10 @@ from datetime import datetime, date
 import base64
 import io
 
+# Define o template padrão do Plotly para todos os gráficos
+px.defaults.template = "plotly_dark"
+
+
 # =====================================================================
 # FUNÇÃO DE CARREGAMENTO DE DADOS
 # =====================================================================
