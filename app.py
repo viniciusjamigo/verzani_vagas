@@ -33,7 +33,11 @@ def load_data():
 # INICIALIZAÇÃO E CONFIGURAÇÕES GERAIS
 # =====================================================================
 df = load_data() # Carga inicial dos dados
-app = dash.Dash(__name__, external_stylesheets=[dbc.themes.CYBORG], suppress_callback_exceptions=True)
+app = dash.Dash(
+    __name__, 
+    external_stylesheets=[dbc.themes.CYBORG, dbc.icons.BOOTSTRAP], 
+    suppress_callback_exceptions=True
+)
 server = app.server
 
 # =====================================================================
@@ -64,7 +68,10 @@ login_layout = dbc.Container([
                     dbc.Alert("Por favor, insira suas credenciais para continuar.", color="secondary"),
                     dbc.Alert(id="output-state", color="danger", is_open=False),
                     dbc.Input(id="username", type="text", placeholder="Usuário", className="mb-3"),
-                    dbc.Input(id="password", type="password", placeholder="Senha", className="mb-3"),
+                    html.Div([
+                        dbc.Input(id="password", type="password", placeholder="Senha"),
+                        html.I(id="password-toggle-icon", className="bi bi-eye-fill")
+                    ], className="password-input-wrapper mb-3"),
                     dbc.Button("Fazer login", id="login-button", color="primary", className="w-100"),
                 ])
             ], className="mt-5", style={"maxWidth": "500px"}),
@@ -341,6 +348,21 @@ def logout_logic(n_clicks):
         
     # Limpa a sessão e redireciona para a página de login
     return {}, '/login'
+
+
+# --- Callback de visibilidade da senha ---
+@app.callback(
+    [Output('password', 'type'),
+     Output('password-toggle-icon', 'className')],
+    Input('password-toggle-icon', 'n_clicks'),
+    State('password', 'type'),
+    prevent_initial_call=True
+)
+def toggle_password_visibility(n_clicks, current_type):
+    if current_type == 'password':
+        return 'text', 'bi bi-eye-slash-fill'
+    else:
+        return 'password', 'bi bi-eye-fill'
 
 
 # --- Callback 4: Mostrar/Ocultar Upload com base na permissão ---

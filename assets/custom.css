@@ -102,6 +102,26 @@ h1.text-primary {
     opacity: 1;
 }
 
+/* --- Estilos para o ícone de mostrar/ocultar senha --- */
+.password-input-wrapper {
+    position: relative;
+}
+
+#password-toggle-icon {
+    position: absolute;
+    top: 50%;
+    right: 15px;
+    transform: translateY(-50%);
+    cursor: pointer;
+    color: #888;
+}
+
+/* Adiciona espaço à direita no campo de senha para o ícone não sobrepor o texto */
+#password {
+    padding-right: 40px !important;
+}
+
+
 /* ===================================================================== */
 /* --- REGRAS DE RESPONSIVIDADE PARA DISPOSITIVOS MÓVEIS --- */
 /* ===================================================================== */
