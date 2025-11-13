@@ -306,6 +306,10 @@ def router(pathname, session_data):
     prevent_initial_call=True # Impede a execução no carregamento inicial
 )
 def login_logic(n_clicks, username, password):
+    # MUDANÇA: Adiciona uma guarda para impedir a execução automática
+    if n_clicks is None:
+        raise dash.exceptions.PreventUpdate
+
     if username in USERS and password == USERS[username]["password"]:
         session_data = {
             'authenticated': True, 
@@ -328,6 +332,10 @@ def login_logic(n_clicks, username, password):
     prevent_initial_call=True
 )
 def logout_logic(n_clicks):
+    # MUDANÇA: Adiciona uma guarda para impedir a execução automática
+    if n_clicks is None:
+        raise dash.exceptions.PreventUpdate
+        
     # Limpa a sessão e redireciona para a página de login
     return {}, '/login'
 
