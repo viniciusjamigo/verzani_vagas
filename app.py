@@ -1,5 +1,5 @@
 import dash
-from dash import dcc, html
+from dash import dcc, html, callback_context
 from dash.dependencies import Input, Output, State
 import dash_bootstrap_components as dbc
 import pandas as pd
@@ -33,17 +33,56 @@ df.loc[df['STATUS'] == '', 'STATUS'] = 'Não especificado'
 # =====================================================================
 # 2. INICIALIZACAO DO APP DASH
 # =====================================================================
-app = dash.Dash(__name__, external_stylesheets=[dbc.themes.FLATLY])
+app = dash.Dash(__name__, external_stylesheets=[dbc.themes.FLATLY], suppress_callback_exceptions=True)
 server = app.server
 
-# Opções para os filtros Dropdown, com todos os valores pré-selecionados
+# =====================================================================
+# USUÁRIOS VÁLIDOS (PARA AUTENTICAÇÃO)
+# =====================================================================
+# Em um projeto real, isso viria de um banco de dados
+VALID_USERNAME_PASSWORD_PAIRS = {
+    "verzani": "vagas123"
+}
+
+# =====================================================================
+# OPÇÕES PARA FILTROS
+# =====================================================================
 status_vaga_options = sorted(df['Status da Vaga'].unique())
 status_interno_options = sorted(df['STATUS'].unique())
 
 # =====================================================================
-# 3. LAYOUT DO DASHBOARD
+# LAYOUTS (PÁGINA DE LOGIN E PÁGINA DO DASHBOARD)
 # =====================================================================
-app.layout = dbc.Container([
+
+# --- Layout da Página de Login ---
+login_layout = dbc.Container([
+    dbc.Row(
+        dbc.Col(
+            dbc.Card([
+                html.H3("Acesso Restrito", className="card-title text-center mt-4"),
+                dbc.CardBody([
+                    dbc.Alert("Por favor, insira suas credenciais para continuar.", color="primary"),
+                    dbc.Alert(id="output-state", color="danger", is_open=False),
+                    dbc.Input(id="username", type="text", placeholder="Usuário", className="mb-3"),
+                    dbc.Input(id="password", type="password", placeholder="Senha", className="mb-3"),
+                    dbc.Button("Entrar", id="login-button", color="primary", className="w-100"),
+                ])
+            ], className="mt-5", style={"maxWidth": "500px"}),
+            width=12,
+            className="d-flex justify-content-center"
+        )
+    )
+], fluid=True)
+
+
+# --- Layout Principal do Dashboard (seu código original) ---
+dashboard_layout = dbc.Container([
+    # Adicionando Botão de Logout
+    dbc.Row([
+        dbc.Col(html.Div(id='user-name-display', className='text-muted text-start'), width=6),
+        dbc.Col(dbc.Button("Sair", id="logout_button", color="danger", size="sm", className="float-end"), width=6),
+    ], className="mt-3 mb-2"),
+
     # --- Linha 1: Titulo ---
     dbc.Row([
         dbc.Col([
@@ -199,10 +238,80 @@ app.layout = dbc.Container([
 
 ], fluid=True)
 
+# =====================================================================
+# LAYOUT PRINCIPAL (CONTROLA QUAL PÁGINA MOSTRAR)
+# =====================================================================
+app.layout = html.Div([
+    dcc.Location(id='url', refresh=False),
+    # 'session' guarda os dados no navegador enquanto a aba estiver aberta
+    dcc.Store(id='session', storage_type='session'),
+    html.Div(id='page-content')
+])
+
 
 # =====================================================================
 # 4. CALLBACKS - A "INTELIGENCIA" DO DASHBOARD
 # =====================================================================
+
+# --- Callback 1: Roteador de Páginas ---
+# Decide se mostra a página de login ou o dashboard
+@app.callback(
+    Output('page-content', 'children'),
+    Input('url', 'pathname'),
+    State('session', 'data')
+)
+def display_page(pathname, session_data):
+    session_data = session_data or {}
+    if session_data.get('authenticated'):
+        return dashboard_layout
+    else:
+        return login_layout
+
+# --- Callback 2: Lógica de Login ---
+@app.callback(
+    [Output('session', 'data'),
+     Output('output-state', 'children'),
+     Output('output-state', 'is_open')],
+    Input('login-button', 'n_clicks'),
+    [State('username', 'value'),
+     State('password', 'value')]
+)
+def update_output(n_clicks, username, password):
+    if n_clicks is None or n_clicks == 0:
+        raise dash.exceptions.PreventUpdate
+
+    if username in VALID_USERNAME_PASSWORD_PAIRS and password == VALID_USERNAME_PASSWORD_PAIRS[username]:
+        session_data = {'authenticated': True, 'username': username}
+        return session_data, "", False
+    else:
+        error_message = "Usuário ou senha inválidos."
+        return dash.no_update, error_message, True
+
+
+# --- Callback 3: Lógica de Logout ---
+@app.callback(
+    Output('url', 'pathname'),
+    Input('logout_button', 'n_clicks'),
+    State('session', 'data')
+)
+def logout(n_clicks, session_data):
+    if n_clicks:
+        if session_data:
+            session_data['authenticated'] = False
+            # Embora a sessão seja limpa, o redirecionamento é o que efetivamente "desloga"
+        return '/' # Redireciona para a raiz, o que vai acionar o display_page e mostrar o login
+    raise dash.exceptions.PreventUpdate
+
+# --- Callback 4: Mostrar nome do usuário logado ---
+@app.callback(
+    Output('user-name-display', 'children'),
+    Input('session', 'data')
+)
+def display_username(session_data):
+    if session_data and session_data.get('authenticated'):
+        return f"Logado como: {session_data.get('username', 'Usuário')}"
+    return ""
+
 
 # --- Callbacks para interatividade do Filtro 1 (Status da Vaga) ---
 @app.callback(
