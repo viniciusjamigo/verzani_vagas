@@ -9,8 +9,7 @@ from datetime import datetime, date
 import base64
 import io
 
-# Define o template padrão do Plotly para todos os gráficos
-px.defaults.template = "plotly_dark"
+# REMOVIDO: px.defaults.template = "plotly_dark"
 
 
 # =====================================================================
@@ -556,7 +555,13 @@ def update_dashboard_status_vaga(start_date, end_date, selected_status, selected
         orientation='h',
         text='Quantidade'
     )
-    fig_status.update_layout(yaxis_title=None, xaxis_title='Quantidade de Vagas')
+    fig_status.update_layout(
+        yaxis_title=None, 
+        xaxis_title='Quantidade de Vagas',
+        paper_bgcolor='rgba(0,0,0,0)', # Fundo transparente
+        plot_bgcolor='rgba(0,0,0,0)', # Fundo transparente
+        font=dict(color='white') # Cor da fonte
+    )
     fig_status.update_traces(textposition='outside')
 
     # Grafico de Vagas por Motivo (Rosca)
@@ -568,6 +573,12 @@ def update_dashboard_status_vaga(start_date, end_date, selected_status, selected
         values='Quantidade',
         title='Distribuição por Motivo',
         hole=.4
+    )
+    fig_motivo.update_layout(
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,0,0,0)',
+        font=dict(color='white'),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
     )
     
     # Grafico de Top 15 Vagas com Mais Tempo em Aberto
@@ -589,7 +600,10 @@ def update_dashboard_status_vaga(start_date, end_date, selected_status, selected
         height=600, # Define uma altura fixa para o gráfico
         yaxis_title=None,
         xaxis_title='Dias em Aberto',
-        yaxis=dict(tickfont=dict(size=10)) # Diminui o tamanho da fonte para caber mais texto
+        yaxis=dict(tickfont=dict(size=10)), # Diminui o tamanho da fonte para caber mais texto
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,0,0,0)',
+        font=dict(color='white')
     )
     fig_top_vagas.update_traces(textposition='outside')
     
@@ -689,7 +703,13 @@ def update_dashboard_status_interno(start_date, end_date, selected_status, selec
         orientation='h',
         text='Quantidade'
     )
-    fig_status.update_layout(yaxis_title=None, xaxis_title='Quantidade de Vagas')
+    fig_status.update_layout(
+        yaxis_title=None, 
+        xaxis_title='Quantidade de Vagas',
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,0,0,0)',
+        font=dict(color='white')
+    )
     fig_status.update_traces(textposition='outside')
 
     # Grafico de Vagas por Motivo (Rosca) - Lógica idêntica
@@ -701,6 +721,12 @@ def update_dashboard_status_interno(start_date, end_date, selected_status, selec
         values='Quantidade',
         title='Distribuição por Motivo',
         hole=.4
+    )
+    fig_motivo.update_layout(
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,0,0,0)',
+        font=dict(color='white'),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
     )
     
     # Grafico de Top 15 Vagas com Mais Tempo em Aberto - Lógica idêntica
@@ -721,7 +747,10 @@ def update_dashboard_status_interno(start_date, end_date, selected_status, selec
         height=600,
         yaxis_title=None,
         xaxis_title='Dias em Aberto',
-        yaxis=dict(tickfont=dict(size=10))
+        yaxis=dict(tickfont=dict(size=10)),
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,0,0,0)',
+        font=dict(color='white')
     )
     fig_top_vagas.update_traces(textposition='outside')
     

@@ -132,6 +132,12 @@ h1.text-primary {
         font-size: 1rem;
     }
 
+    /* Ajusta a legenda do gráfico de pizza para não quebrar em telas pequenas */
+    .card .legend {
+        font-size: 0.7rem;
+        --titlefont-size: 12px !important;
+    }
+
     /* Remove a altura fixa do gráfico de "Top Vagas" para que ele se ajuste ao conteúdo */
     #grafico-top-vagas-aberto, #grafico-top-vagas-aberto-interno {
         height: auto !important;
