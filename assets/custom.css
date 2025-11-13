@@ -102,3 +102,39 @@ h1.text-primary {
     opacity: 1;
 }
 
+/* ===================================================================== */
+/* --- REGRAS DE RESPONSIVIDADE PARA DISPOSITIVOS MÓVEIS --- */
+/* ===================================================================== */
+
+/* Aplica estas regras para telas com largura máxima de 768px (tablets e celulares) */
+@media (max-width: 768px) {
+    
+    /* Reduz o tamanho do título principal em telas menores */
+    h1.text-primary {
+        font-size: 1.8rem;
+    }
+
+    /* Força os filtros gerais a ficarem um abaixo do outro */
+    #filtro-data, #filtro-grupo, #filtro-uf {
+        margin-bottom: 15px;
+    }
+
+    /* Ajusta o tamanho das fontes dentro dos cards/KPIs */
+    .card-body h4 {
+        font-size: 1.5rem;
+    }
+    .card-body h6 {
+        font-size: 0.8rem;
+    }
+
+    /* Reduz o tamanho do título dos gráficos */
+    .card .graph-title {
+        font-size: 1rem;
+    }
+
+    /* Remove a altura fixa do gráfico de "Top Vagas" para que ele se ajuste ao conteúdo */
+    #grafico-top-vagas-aberto, #grafico-top-vagas-aberto-interno {
+        height: auto !important;
+    }
+}
+
